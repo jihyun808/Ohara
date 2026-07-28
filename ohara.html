@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ohara — 꾸준한 일기로 보는 내 마음</title>
+<style>
+:root{
+  /* 세이지 · 모스 계열 팔레트 */
+  --paper:#FCFDFA;
+  --ink:#1F2A24;
+  --muted:#9AA79B;
+  --rule:#DEE6DA;
+  --sage:#D8EAD3;
+  --sage-deep:#C4DCBD;
+  --sage-ghost:#EFF6EC;
+  --moss:#4E7A57;
+  --sun:#C0574B;
+  --sat:#5A7C93;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"Apple SD Gothic Neo","Malgun Gothic",monospace;
+  --sans:"Apple SD Gothic Neo","Pretendard","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  letter-spacing:.02em;
+  -webkit-text-size-adjust:100%;
+  padding:28px 22px 64px;
+}
+button,input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--moss);outline-offset:2px;border-radius:3px}
+
+.wrap{max-width:1120px;margin:0 auto}
+
+/* ── masthead ───────────────────────────── */
+.masthead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  padding-bottom:10px;border-bottom:1.5px solid var(--ink);max-width:520px}
+.masthead h1{font-family:var(--mono);font-size:34px;font-weight:600;letter-spacing:.06em;margin:0}
+.tagline{margin:0;font-size:14px;letter-spacing:.06em;color:#4A5A4E}
+
+/* ── grid ───────────────────────────────── */
+.grid{display:grid;gap:26px 40px;margin-top:26px;
+  grid-template-columns:minmax(300px,400px) 1fr;
+  grid-template-areas:"cal diary" "board diary";
+  align-items:start}
+.cal{grid-area:cal}
+.board{grid-area:board}
+.diary{grid-area:diary}
+
+/* ── calendar ───────────────────────────── */
+.cal{position:relative;padding:16px 6px 8px}
+.cal::before,.cal::after{content:"";position:absolute;width:14px;height:14px;pointer-events:none}
+.cal::before{top:0;left:0;border-top:1.5px solid var(--ink);border-left:1.5px solid var(--ink)}
+.cal::after{top:0;right:0;border-top:1.5px solid var(--ink);border-right:1.5px solid var(--ink)}
+.cal-foot{height:0;position:relative}
+.cal-foot::before,.cal-foot::after{content:"";position:absolute;bottom:-4px;width:14px;height:14px}
+.cal-foot::before{left:0;border-bottom:1.5px solid var(--ink);border-left:1.5px solid var(--ink)}
+.cal-foot::after{right:0;border-bottom:1.5px solid var(--ink);border-right:1.5px solid var(--ink)}
+
+.cal-head{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px}
+.cal-title{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:.06em;min-width:120px;text-align:center}
+.cal-title span{font-size:12px;color:var(--muted);margin-right:6px}
+.navbtn{background:none;border:0;cursor:pointer;font-size:17px;line-height:1;padding:6px 9px;color:#5C6B5F;border-radius:50%}
+.navbtn:hover{background:var(--sage-ghost);color:var(--ink)}
+
+.dow,.days{display:grid;grid-template-columns:repeat(7,1fr)}
+.dow div{font-family:var(--mono);font-size:13px;text-align:center;padding-bottom:8px;letter-spacing:.04em}
+.dow div:first-child{color:var(--sun)}
+.dow div:last-child{color:var(--sat)}
+.days{row-gap:2px}
+.day{position:relative;background:none;border:0;cursor:pointer;padding:0;
+  height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:14px;letter-spacing:.02em;color:var(--ink);border-radius:8px}
+.day .num{width:28px;height:28px;line-height:28px;border-radius:50%;transition:background .12s ease,color .12s ease}
+.day.sun .num{color:var(--sun)} .day.sat .num{color:var(--sat)}
+.day.out{opacity:.3}
+.day:hover .num{background:var(--sage-ghost)}
+.day.today .num{background:var(--sage);font-weight:600}
+.day.on .num{background:var(--ink);color:#fff;font-weight:600}
+.day.on.sun .num,.day.on.sat .num{color:#fff}
+.day .dot{width:5px;height:5px;border-radius:50%;background:var(--moss);margin-top:3px}
+.day .dot.hide{visibility:hidden}
+
+/* ── board (메모 / 체크리스트) ───────────── */
+.board{border:1.5px solid var(--ink);padding:14px 16px 16px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab{border:0;background:none;cursor:pointer;font-size:13.5px;letter-spacing:.06em;
+  padding:5px 12px;border-radius:999px;color:#6D7A6F}
+.tab[aria-selected="true"]{background:var(--ink);color:#fff}
+.memo{width:100%;min-height:150px;resize:vertical;border:0;background:var(--sage-ghost);
+  border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.7}
+.todo-add{display:flex;gap:8px;margin-bottom:10px}
+.todo-add input{flex:1;min-width:0;border:0;border-bottom:1.2px solid var(--rule);background:none;
+  padding:7px 2px;font-size:14px}
+.todo-add input:focus{border-bottom-color:var(--moss);outline:none}
+.todo-add button{border:1.2px solid var(--ink);background:none;border-radius:999px;
+  padding:4px 14px;font-size:13px;cursor:pointer}
+.todo-add button:hover{background:var(--ink);color:#fff}
+.todos{list-style:none;margin:0;padding:0;min-height:120px}
+.todos li{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px dashed var(--rule)}
+.todos .txt{flex:1;font-size:14px;line-height:1.45;word-break:break-word}
+.todos li.done .txt{text-decoration:line-through;color:var(--muted)}
+.todos .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 5px;line-height:1}
+.todos .x:hover{color:var(--sun)}
+.empty{color:var(--muted);font-size:13px;padding:14px 2px;letter-spacing:.04em}
+
+.chk{appearance:none;-webkit-appearance:none;width:17px;height:17px;flex:none;
+  border:1.4px solid #A6B3A8;border-radius:4px;cursor:pointer;position:relative;background:#fff}
+.chk:checked{background:var(--moss);border-color:var(--moss)}
+.chk:checked::after{content:"";position:absolute;left:5px;top:1px;width:4px;height:9px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg)}
+.chk:disabled{cursor:default;opacity:.75}
+
+/* ── diary ──────────────────────────────── */
+.diary{padding-top:6px}
+.diary-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
+.diary-date{font-family:var(--mono);font-size:17px;letter-spacing:.05em;font-weight:600}
+
+.mood{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--rule);
+  border-radius:999px;padding:6px 8px 6px 13px;background:#fff;transition:border-color .18s ease}
+.mood-dot{width:13px;height:13px;border-radius:50%;background:var(--rule);flex:none;transition:background .18s ease}
+.mood select{border:0;background:none;font-family:var(--mono);font-size:13.5px;letter-spacing:.06em;
+  padding:0 2px;cursor:pointer;appearance:none;-webkit-appearance:none}
+.mood select:disabled{cursor:default}
+.mood .caret{font-size:10px;color:var(--muted);pointer-events:none}
+
+.field-main{width:100%;min-height:190px;resize:vertical;border:0;border-radius:14px;
+  background:var(--sage);padding:18px 20px;font-size:15px;line-height:1.85}
+.field-main::placeholder{color:#7FA286}
+
+.row{display:flex;align-items:center;gap:10px;background:var(--sage);border-radius:14px;
+  padding:14px 20px;margin-top:12px}
+.row label{font-size:14.5px;letter-spacing:.04em;white-space:nowrap}
+.row input{flex:1;min-width:0;border:0;background:none;font-size:14.5px;padding:2px 0}
+.row input:focus{outline:none;border-bottom:1.2px solid var(--moss)}
+
+.sleep{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:22px;
+  border-bottom:1.3px solid var(--ink);padding-bottom:8px}
+.sleep .cell{display:flex;align-items:center;gap:8px}
+.sleep .cell>span{font-size:14px;letter-spacing:.05em}
+.sleep select{border:0;background:var(--sage-ghost);border-radius:8px;padding:5px 9px;
+  font-family:var(--mono);font-size:13.5px;cursor:pointer;appearance:none;-webkit-appearance:none;text-align:center}
+.sleep select:disabled{cursor:default;background:transparent;padding-left:0;padding-right:0}
+.paren{font-family:var(--mono);font-size:14px;color:#3C4A40;display:flex;align-items:center;gap:4px}
+.paren input{width:46px;border:0;border-bottom:1.2px solid var(--rule);background:none;
+  font-family:var(--mono);font-size:14px;text-align:center;padding:2px 0;-moz-appearance:textfield}
+.paren input::-webkit-outer-spin-button,.paren input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.paren input:focus{outline:none;border-bottom-color:var(--moss)}
+
+.habits{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:16px}
+.habit{display:flex;align-items:center;gap:7px;font-size:14.5px}
+.icon-toggle{border:0;background:none;cursor:pointer;padding:4px;border-radius:10px;
+  color:#C0CBC1;line-height:0;transition:color .15s ease,background .15s ease}
+.icon-toggle:hover{background:var(--sage-ghost)}
+.icon-toggle[aria-pressed="true"]{color:var(--moss)}
+.icon-toggle:disabled{cursor:default}
+
+.forgot{margin-top:20px;border:1.4px solid var(--ink);border-radius:12px;
+  display:flex;align-items:center;gap:10px;padding:14px 18px}
+.forgot label{font-size:14.5px;letter-spacing:.04em;white-space:nowrap}
+.forgot input{flex:1;min-width:0;border:0;background:none;font-size:14.5px;padding:2px 0}
+.forgot input:focus{outline:none}
+
+.actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.btn{border:1.4px solid var(--ink);background:none;border-radius:999px;
+  padding:9px 22px;font-size:14px;letter-spacing:.06em;cursor:pointer;transition:background .13s ease,color .13s ease}
+.btn:hover{background:var(--sage-ghost)}
+.btn.primary{background:var(--ink);color:#fff}
+.btn.primary:hover{background:#0F1A14}
+.btn.ghost{border-color:var(--rule);color:#8B978D}
+.btn.ghost:hover{border-color:var(--sun);color:var(--sun);background:none}
+.btn[hidden]{display:none}
+
+.field-main[readonly],.row input[readonly],.forgot input[readonly]{color:#2A342D}
+
+/* ── toast ──────────────────────────────── */
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);
+  background:var(--ink);color:#fff;font-size:13.5px;letter-spacing:.05em;
+  padding:11px 20px;border-radius:999px;opacity:0;pointer-events:none;transition:.22s ease;z-index:50}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.foot{margin-top:34px;font-size:11.5px;color:var(--muted);letter-spacing:.05em;text-align:center}
+
+/* ── 반응형 : 세로일 때 캘린더 → 메모 → 일기 ── */
+@media (max-width:900px){
+  body{padding:22px 16px 56px}
+  .grid{grid-template-columns:1fr;grid-template-areas:"cal" "board" "diary";gap:28px}
+  .masthead{max-width:none}
+  .masthead h1{font-size:28px}
+  .diary{padding-top:0}
+}
+@media (max-width:480px){
+  body{padding:18px 13px 48px}
+  .masthead h1{font-size:25px}
+  .tagline{font-size:12.5px}
+  .day{height:46px}
+  .day .num{width:26px;height:26px;line-height:26px;font-size:13px}
+  .diary-head{gap:10px}
+  .diary-date{font-size:14.5px}
+  .field-main{padding:15px 16px;min-height:170px}
+  .row{padding:12px 16px}
+  .row label{font-size:13.5px}
+  .sleep{gap:12px}
+  .btn{flex:1;text-align:center;padding:11px 12px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <h1>Ohara</h1>
+    <p class="tagline">꾸준한 일기로 보는 내 마음</p>
+  </header>
+
+  <main class="grid">
+
+    <!-- 캘린더 -->
+    <section class="cal" aria-label="달력">
+      <div class="cal-head">
+        <button class="navbtn" id="prev" aria-label="이전 달">‹</button>
+        <div class="cal-title" id="calTitle"></div>
+        <button class="navbtn" id="next" aria-label="다음 달">›</button>
+      </div>
+      <div class="dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+      <div class="days" id="days"></div>
+      <div class="cal-foot"></div>
+    </section>
+
+    <!-- 메모 / 체크리스트 -->
+    <section class="board" aria-label="메모와 체크리스트">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tabMemo" aria-selected="true" aria-controls="paneMemo">메모</button>
+        <button class="tab" role="tab" id="tabTodo" aria-selected="false" aria-controls="paneTodo">체크리스트</button>
+      </div>
+      <div id="paneMemo" role="tabpanel" aria-labelledby="tabMemo">
+        <textarea class="memo" id="memo" placeholder="적어두면 잊지 않아요"></textarea>
+      </div>
+      <div id="paneTodo" role="tabpanel" aria-labelledby="tabTodo" hidden>
+        <div class="todo-add">
+          <input id="todoInput" type="text" placeholder="할 일 추가" aria-label="할 일 추가">
+          <button id="todoAdd">추가</button>
+        </div>
+        <ul class="todos" id="todos"></ul>
+      </div>
+    </section>
+
+    <!-- 일기 -->
+    <section class="diary" aria-label="일기">
+      <div class="diary-head">
+        <div class="diary-date" id="diaryDate"></div>
+        <div class="mood" id="moodWrap">
+          <span class="mood-dot" id="moodDot"></span>
+          <select id="fMood" aria-label="오늘의 감정">
+            <option value="">mood</option>
+            <option value="great">great</option>
+            <option value="good">good</option>
+            <option value="soso">soso</option>
+            <option value="bad">bad</option>
+            <option value="sad">sad</option>
+            <option value="angry">angry</option>
+          </select>
+          <span class="caret" aria-hidden="true">▾</span>
+        </div>
+      </div>
+
+      <textarea class="field-main" id="fBody" placeholder="오늘의 마음을 적어보세요"></textarea>
+
+      <div class="row"><label for="fPraise">나에게 하는 칭찬 :</label><input id="fPraise" type="text"></div>
+      <div class="row"><label for="fPeople">오늘 만난 사람들 :</label><input id="fPeople" type="text"></div>
+
+      <div class="sleep">
+        <label class="cell"><span>취침</span><select id="fSleep"></select></label>
+        <label class="cell"><span>기상</span><select id="fWake"></select></label>
+        <div class="paren">(<input id="fDur" type="number" min="0" max="24" step="0.5" aria-label="잔 시간"><span>시간)</span></div>
+      </div>
+
+      <div class="habits">
+        <label class="habit"><input class="chk" type="checkbox" id="mB"> 아침</label>
+        <label class="habit"><input class="chk" type="checkbox" id="mL"> 점심</label>
+        <label class="habit"><input class="chk" type="checkbox" id="mD"> 저녁</label>
+        <button class="icon-toggle" id="tMed" aria-pressed="false" title="약 챙겨먹기">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="2.6" y="8.2" width="18.8" height="7.6" rx="3.8" transform="rotate(-32 12 12)"/>
+            <path d="M9.1 6.3 L14.9 17.7"/>
+          </svg>
+        </button>
+        <button class="icon-toggle" id="tEx" aria-pressed="false" title="운동">
+          <svg width="32" height="32" viewBox="0 0 32 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <circle cx="7" cy="17" r="5"/><circle cx="25" cy="17" r="5"/>
+            <path d="M7 17 L13 8 L20 8 L25 17 M13 8 L17 17 M18.5 4.5 L21.5 4.5"/>
+            <circle cx="22.5" cy="2.6" r="1.9"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="forgot"><label for="fForgot">깜빡 잊은 일 :</label><input id="fForgot" type="text"></div>
+
+      <div class="actions">
+        <button class="btn primary" id="btnEdit">수정</button>
+        <button class="btn primary" id="btnSave" hidden>저장</button>
+        <button class="btn" id="btnCancel" hidden>취소</button>
+        <button class="btn ghost" id="btnDelete" hidden>삭제</button>
+      </div>
+    </section>
+
+  </main>
+
+  <p class="foot" id="foot"></p>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ── 저장소: Claude 미리보기(window.storage) → localStorage → 메모리 ── */
+var Store = (function(){
+  var cs = (window.storage && typeof window.storage.get === "function") ? window.storage : null;
+  var ls = null;
+  try { var t="__ohara__"; localStorage.setItem(t,"1"); localStorage.removeItem(t); ls = localStorage; } catch(e){}
+  var mem = {};
+  return {
+    mode: cs ? "claude" : (ls ? "local" : "memory"),
+    get: function(k){
+      if (cs) return cs.get(k,false).then(function(r){return r?r.value:null;}).catch(function(){return null;});
+      if (ls) return Promise.resolve(ls.getItem(k));
+      return Promise.resolve(k in mem ? mem[k] : null);
+    },
+    set: function(k,v){
+      if (cs) return cs.set(k,v,false).catch(function(){return null;});
+      if (ls) { try{ ls.setItem(k,v);}catch(e){} return Promise.resolve(); }
+      mem[k]=v; return Promise.resolve();
+    },
+    del: function(k){
+      if (cs) return cs.delete(k,false).catch(function(){return null;});
+      if (ls) { try{ ls.removeItem(k);}catch(e){} return Promise.resolve(); }
+      delete mem[k]; return Promise.resolve();
+    }
+  };
+})();
+
+var K_INDEX="ohara:index", K_BOARD="ohara:board", K_ENTRY="ohara:entry:";
+
+/* 감정 색 — 초록에서 출발해 채도/온도만 다르게 */
+var MOOD = {
+  great:"#3E8E5A", good:"#7FB069", soso:"#B7B664",
+  bad:"#C2924F",  sad:"#7B93A0",  angry:"#C0574B"
+};
+
+/* ── 상태 ── */
+var today=new Date();
+var view={ y:today.getFullYear(), m:today.getMonth() };
+var selected=iso(today);
+var index={};            // { "2026-07-16": "good" }
+var entry=blank();
+var editing=false;
+var board={ memo:"", todos:[] };
+
+function pad(n){ return (n<10?"0":"")+n; }
+function iso(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function blank(){
+  return { mood:"", body:"", praise:"", people:"", sleep:"", wake:"", dur:"",
+           meals:{b:false,l:false,d:false}, med:false, ex:false, forgot:"" };
+}
+function isEmpty(e){
+  return !e.mood && !e.body.trim() && !e.praise.trim() && !e.people.trim() && !e.forgot.trim() &&
+         !e.sleep && !e.wake && !String(e.dur).trim() &&
+         !e.meals.b && !e.meals.l && !e.meals.d && !e.med && !e.ex;
+}
+
+var $=function(id){ return document.getElementById(id); };
+var F={
+  mood:$("fMood"), body:$("fBody"), praise:$("fPraise"), people:$("fPeople"),
+  sleep:$("fSleep"), wake:$("fWake"), dur:$("fDur"),
+  mB:$("mB"), mL:$("mL"), mD:$("mD"), med:$("tMed"), ex:$("tEx"), forgot:$("fForgot")
+};
+
+/* 시간 드롭다운 30분 단위 */
+(function fillTimes(){
+  [F.sleep,F.wake].forEach(function(sel){
+    var html='<option value="">--:--</option>';
+    for(var h=0;h<24;h++) for(var m=0;m<60;m+=30){
+      var v=pad(h)+":"+pad(m);
+      html+='<option value="'+v+'">'+v+'</option>';
+    }
+    sel.innerHTML=html;
+  });
+})();
+
+/* ── 토스트 ── */
+var toastT;
+function toast(msg){
+  var el=$("toast"); el.textContent=msg; el.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(function(){ el.classList.remove("show"); },1700);
+}
+
+/* ── 캘린더 ── */
+function renderCal(){
+  $("calTitle").innerHTML='<span>'+view.y+'</span>'+(view.m+1)+'월';
+  var first=new Date(view.y,view.m,1);
+  var start=new Date(first); start.setDate(1-first.getDay());
+  var box=$("days"); box.innerHTML="";
+  var todayIso=iso(new Date());
+
+  for(var i=0;i<42;i++){
+    var d=new Date(start); d.setDate(start.getDate()+i);
+    var key=iso(d), dow=d.getDay(), has=Object.prototype.hasOwnProperty.call(index,key);
+    var color=MOOD[index[key]]||"var(--moss)";
+    var b=document.createElement("button");
+    b.type="button";
+    b.className="day"+(dow===0?" sun":dow===6?" sat":"")+
+      (d.getMonth()!==view.m?" out":"")+(key===todayIso?" today":"")+(key===selected?" on":"");
+    b.dataset.date=key;
+    b.setAttribute("aria-label", d.getFullYear()+"년 "+(d.getMonth()+1)+"월 "+d.getDate()+"일"+(has?", 일기 있음":""));
+    if(key===selected) b.setAttribute("aria-current","date");
+    b.innerHTML='<span class="num">'+d.getDate()+'</span>'+
+      '<span class="dot'+(has?"":" hide")+'" style="background:'+color+'"></span>';
+    box.appendChild(b);
+  }
+}
+$("days").addEventListener("click",function(e){
+  var b=e.target.closest(".day"); if(!b) return;
+  goDate(b.dataset.date);
+});
+$("prev").addEventListener("click",function(){ view.m--; if(view.m<0){view.m=11;view.y--;} renderCal(); });
+$("next").addEventListener("click",function(){ view.m++; if(view.m>11){view.m=0;view.y++;} renderCal(); });
+
+function goDate(key){
+  if(editing && dirty() && !confirm("저장하지 않은 내용이 있어요. 이동할까요?")) return;
+  selected=key;
+  var p=key.split("-"); view.y=+p[0]; view.m=+p[1]-1;
+  loadEntry();
+}
+
+/* ── 일기 ── */
+function renderDateTitle(){
+  var p=selected.split("-");
+  $("diaryDate").textContent=(+p[0])+"년 "+(+p[1])+"월 "+(+p[2])+"일 마음 일기";
+}
+function paintMood(){
+  var c=MOOD[F.mood.value];
+  $("moodDot").style.background=c||"var(--rule)";
+  $("moodWrap").style.borderColor=c||"var(--rule)";
+}
+F.mood.addEventListener("change",paintMood);
+
+function fill(e){
+  F.mood.value=e.mood||""; F.body.value=e.body; F.praise.value=e.praise; F.people.value=e.people;
+  F.sleep.value=e.sleep; F.wake.value=e.wake; F.dur.value=e.dur; F.forgot.value=e.forgot;
+  F.mB.checked=e.meals.b; F.mL.checked=e.meals.l; F.mD.checked=e.meals.d;
+  F.med.setAttribute("aria-pressed", e.med?"true":"false");
+  F.ex.setAttribute("aria-pressed", e.ex?"true":"false");
+  paintMood();
+}
+function collect(){
+  return {
+    mood:F.mood.value, body:F.body.value, praise:F.praise.value, people:F.people.value,
+    sleep:F.sleep.value, wake:F.wake.value, dur:F.dur.value,
+    meals:{b:F.mB.checked,l:F.mL.checked,d:F.mD.checked},
+    med:F.med.getAttribute("aria-pressed")==="true",
+    ex:F.ex.getAttribute("aria-pressed")==="true",
+    forgot:F.forgot.value
+  };
+}
+function dirty(){ return JSON.stringify(collect())!==JSON.stringify(entry); }
+
+function setMode(edit){
+  editing=edit;
+  var lock=!edit;
+  [F.body,F.praise,F.people,F.forgot,F.dur].forEach(function(el){ el.readOnly=lock; });
+  [F.mood,F.sleep,F.wake,F.mB,F.mL,F.mD].forEach(function(el){ el.disabled=lock; });
+  F.med.disabled=lock; F.ex.disabled=lock;
+
+  $("btnEdit").hidden=edit;
+  $("btnSave").hidden=!edit;
+  $("btnCancel").hidden=!edit;
+  $("btnDelete").hidden=!Object.prototype.hasOwnProperty.call(index,selected);
+}
+
+function loadEntry(){
+  renderDateTitle();
+  Store.get(K_ENTRY+selected).then(function(raw){
+    var e=blank();
+    if(raw){ try{ var o=JSON.parse(raw); e=Object.assign(blank(),o);
+      e.meals=Object.assign({b:false,l:false,d:false},o.meals||{}); }catch(err){} }
+    entry=e; fill(entry);
+    setMode(!Object.prototype.hasOwnProperty.call(index,selected));
+    renderCal();
+  });
+}
+
+/* ── 버튼 ── */
+$("btnEdit").addEventListener("click",function(){ setMode(true); F.body.focus(); });
+$("btnCancel").addEventListener("click",function(){ fill(entry); setMode(false); });
+
+$("btnSave").addEventListener("click",function(){
+  var e=collect();
+  if(isEmpty(e)){
+    if(Object.prototype.hasOwnProperty.call(index,selected)){ removeEntry(); return; }
+    toast("아직 적은 내용이 없어요"); return;
+  }
+  entry=e;
+  Store.set(K_ENTRY+selected, JSON.stringify(e)).then(function(){
+    index[selected]=e.mood||"";
+    return Store.set(K_INDEX, JSON.stringify(index));
+  }).then(function(){
+    setMode(false); renderCal(); toast("저장했어요");
+  });
+});
+
+$("btnDelete").addEventListener("click",function(){
+  if(!confirm("이 날의 일기를 지울까요?")) return;
+  removeEntry();
+});
+function removeEntry(){
+  Store.del(K_ENTRY+selected).then(function(){
+    delete index[selected];
+    return Store.set(K_INDEX, JSON.stringify(index));
+  }).then(function(){
+    entry=blank(); fill(entry); setMode(true); renderCal(); toast("일기를 지웠어요");
+  });
+}
+
+[F.med,F.ex].forEach(function(btn){
+  btn.addEventListener("click",function(){
+    if(btn.disabled) return;
+    btn.setAttribute("aria-pressed", btn.getAttribute("aria-pressed")==="true"?"false":"true");
+  });
+});
+
+document.addEventListener("keydown",function(e){
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="s"){ e.preventDefault(); if(editing) $("btnSave").click(); }
+});
+
+/* ── 메모 / 체크리스트 ── */
+var saveBoardT;
+function saveBoard(){
+  clearTimeout(saveBoardT);
+  saveBoardT=setTimeout(function(){ Store.set(K_BOARD, JSON.stringify(board)); },350);
+}
+function renderTodos(){
+  var ul=$("todos"); ul.innerHTML="";
+  if(!board.todos.length){ ul.innerHTML='<li class="empty" style="border:0">할 일을 추가해 보세요</li>'; return; }
+  board.todos.forEach(function(t){
+    var li=document.createElement("li"); li.className=t.done?"done":"";
+    var c=document.createElement("input"); c.type="checkbox"; c.className="chk"; c.checked=t.done;
+    c.setAttribute("aria-label",t.text);
+    c.addEventListener("change",function(){ t.done=c.checked; renderTodos(); saveBoard(); });
+    var s=document.createElement("span"); s.className="txt"; s.textContent=t.text;
+    var x=document.createElement("button"); x.className="x"; x.textContent="×"; x.setAttribute("aria-label","삭제");
+    x.addEventListener("click",function(){
+      board.todos=board.todos.filter(function(o){ return o.id!==t.id; });
+      renderTodos(); saveBoard();
+    });
+    li.appendChild(c); li.appendChild(s); li.appendChild(x); ul.appendChild(li);
+  });
+}
+function addTodo(){
+  var v=$("todoInput").value.trim(); if(!v) return;
+  board.todos.push({ id:Date.now()+"-"+Math.random().toString(36).slice(2,6), text:v, done:false });
+  $("todoInput").value=""; renderTodos(); saveBoard();
+}
+$("todoAdd").addEventListener("click",addTodo);
+$("todoInput").addEventListener("keydown",function(e){ if(e.key==="Enter") addTodo(); });
+$("memo").addEventListener("input",function(){ board.memo=$("memo").value; saveBoard(); });
+
+function switchTab(which){
+  var m=which==="memo";
+  $("tabMemo").setAttribute("aria-selected",m?"true":"false");
+  $("tabTodo").setAttribute("aria-selected",m?"false":"true");
+  $("paneMemo").hidden=!m; $("paneTodo").hidden=m;
+}
+$("tabMemo").addEventListener("click",function(){ switchTab("memo"); });
+$("tabTodo").addEventListener("click",function(){ switchTab("todo"); });
+
+/* ── 시작 ── */
+window.addEventListener("beforeunload",function(e){
+  if(editing && dirty()){ e.preventDefault(); e.returnValue=""; }
+});
+
+Promise.all([Store.get(K_INDEX),Store.get(K_BOARD)]).then(function(res){
+  try{ index=res[0]?JSON.parse(res[0]):{}; }catch(e){ index={}; }
+  Object.keys(index).forEach(function(k){ if(index[k]===true) index[k]=""; });
+  try{ if(res[1]){ var b=JSON.parse(res[1]); board.memo=b.memo||""; board.todos=b.todos||[]; } }catch(e){}
+  $("memo").value=board.memo;
+  renderTodos(); switchTab("memo");
+  renderCal(); loadEntry();
+  $("foot").textContent = Store.mode==="memory"
+    ? "이 브라우저에서는 저장이 유지되지 않아요"
+    : "일기는 이 기기의 브라우저에만 저장돼요";
+});
+
+})();
+</script>
+</body>
+</html>
